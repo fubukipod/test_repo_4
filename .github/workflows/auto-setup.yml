@@ -37,19 +37,27 @@ jobs:
           - [ ] Will this be part of a product update? If yes, describe briefly
           EOF
 
-      - name: Commit and push templates (auto-resolve conflicts)
+      - name: Commit and push templates (handle stale branch)
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
+          git fetch origin auto-setup-bot-templates || true
+          # ✅ Reset if branch exists remotely
+          if git ls-remote --exit-code origin auto-setup-bot-templates; then
+            git checkout auto-setup-bot-templates || git checkout -B auto-setup-bot-templates
+            git reset --hard origin/auto-setup-bot-templates
+          else
+            git checkout -B auto-setup-bot-templates
+          fi
+          # ✅ Merge main and resolve conflicts automatically
           git fetch origin main
-          git checkout -B auto-setup-bot-templates
-          # ✅ Allow unrelated histories & resolve conflicts in favor of bot changes
           git merge origin/main -X ours --allow-unrelated-histories || true
           git add .github/CODEOWNERS .github/pull_request_template.md || true
           git commit -m "Automated: Added CODEOWNERS & PR template" || echo "No changes to commit"
           git gc --prune=now
-          git push origin auto-setup-bot-templates --force-with-lease
+          # ✅ Always push successfully
+          git push origin auto-setup-bot-templates --force
 
   ##########################################
   # 2. Invite collaborator
@@ -167,7 +175,7 @@ jobs:
             -d '{"name":"Automated Project","body":"Board created by GitHub Action"}'
 
   ##########################################
-  # 7. Notify Discord on PR creation (fixed)
+  # 7. Notify Discord on PR creation
   ##########################################
   notify-discord:
     name: 📢 Discord PR Notification
