@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT }}
+          fetch-depth: 0   # ✅ Full history to prevent index-pack failures
 
       - name: Create required files
         run: |
@@ -43,8 +44,8 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
           git fetch origin main
           git checkout -B auto-setup-bot-templates
-          # ✅ Automatically resolve any conflicts in favor of bot changes
-          git merge origin/main -X ours || true
+          # ✅ Automatically resolve conflicts and allow unrelated histories
+          git merge origin/main -X ours --allow-unrelated-histories || true
           git add .github/CODEOWNERS .github/pull_request_template.md || true
           git commit -m "Automated: Added CODEOWNERS & PR template" || echo "No changes to commit"
           git gc --prune=now
@@ -78,6 +79,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT }}
+          fetch-depth: 0
 
       - name: Create develop if missing (safe push)
         run: |
